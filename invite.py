@@ -30,6 +30,7 @@ def joiner(token, invite):
         client_identifier=f"chrome_{random.randint(110, 115)}",
         random_tls_extension_order=True
     )
+    invite = invite.replace("https://discord.gg/", "").replace("https://discord.com/invite/", "").replace("discord.gg/", "").replace("https://discord.com/invite/", "")
     session.headers.update(headers)
     session.headers.update({"Authorization": token})
     site = session.get("https://discord.com")

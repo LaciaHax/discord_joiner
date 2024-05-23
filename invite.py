@@ -5,6 +5,9 @@ import tls_client
 def rand_str(length):
     return ''.join(random.choices(string.ascii_letters + string.digits, k=length))
 
+def clean_invite(invite):
+    return invite.replace("https://discord.gg/", "").replace("https://discord.com/invite/", "").replace("discord.gg/", "").replace("https://discord.com/invite/", "")
+
 def joiner(token, invite):
     headers = {
         'authority': 'discord.com',
@@ -30,10 +33,36 @@ def joiner(token, invite):
         client_identifier=f"chrome_{random.randint(110, 115)}",
         random_tls_extension_order=True
     )
-    invite = invite.replace("https://discord.gg/", "").replace("https://discord.com/invite/", "").replace("discord.gg/", "").replace("https://discord.com/invite/", "")
     session.headers.update(headers)
-    session.headers.update({"Authorization": token})
-    site = session.get("https://discord.com")
-    session.cookies = site.cookies
-    result = session.post(f"https://discord.com/api/v9/invites/{invite}", json={'session_id': rand_str(32)})
-    return result.text
+
+    if isinstance(token, str):
+        token = [token]
+    if isinstance(invite, str):
+        invite = [invite]
+
+    results = []
+
+    for t in token:
+        session.headers.update({"Authorization": t})
+        site = session.get("https://discord.com")
+        session.cookies = site.cookies
+        for inv in invite:
+            clean_code = clean_invite(inv)
+            result = session.post(f"https://discord.com/api/v9/invites/{clean_code}", json={'session_id': rand_str(32)})
+            status_code = result.status_code
+            response_text = result.text
+
+            if status_code in [200, 204]:
+                status_message = "success :D"
+            elif status_code == 429:
+                status_message = "rate-limited or hcaptcha needed XO"
+            elif status_code == 430:
+                status_message = "missed a invite code?"
+            elif status_code == 500:
+                status_message = "token is dead :P"
+            else:
+                status_message = f"Unexpected status code: {status_code}"
+
+            results.append(f"{status_message}\n{response_text}")
+
+    return results
